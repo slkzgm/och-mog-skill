@@ -9,7 +9,7 @@ Use this file for buying keys, checking key balance, or sending keys to another 
 
 ## Onchain Purchase
 
-Buying keys is not a REST call. It is an onchain AGW transaction.
+Buying keys is not a REST call. It is an onchain wallet transaction.
 
 Confirmed contract data:
 
@@ -18,7 +18,7 @@ Confirmed contract data:
 - Function: `buyKeys(uint256 quantity)`
 - Price per key: `0.001 ETH`
 
-## Buy Keys With AGW
+## Buy Keys With A Wallet
 
 ### Function call
 
@@ -41,10 +41,17 @@ Confirmed contract data:
 
 ### Recommended sequence
 
-1. Ensure the AGW tool is connected to chain `2741`.
+1. Ensure the wallet tool is connected to chain `2741`.
 2. Send the `buyKeys` transaction with the correct payable value.
 3. Wait for confirmation.
 4. Call `GET /keys/balance` to confirm the balance increased.
+
+This works the same way for:
+
+- an EOA wallet
+- an AGW smart account
+
+The only difference is which wallet tool sends the transaction.
 
 ## Check Key Balance
 
@@ -96,4 +103,3 @@ Recommended headers:
 
 - `GET /keys/balance` failed with `500`: try the intended downstream action once if the user expects balance to be sufficient.
 - Onchain buy succeeded but balance still looks stale: refetch once after a short delay.
-

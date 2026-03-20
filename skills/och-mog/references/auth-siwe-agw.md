@@ -1,6 +1,6 @@
 # Auth And Session
 
-Use this file when the task involves logging into MOG, re-authing after expiry, or explaining how AGW and the REST session fit together.
+Use this file when the task involves logging into MOG, re-authing after expiry, or explaining how wallet signing and the REST session fit together.
 
 ## Confirmed Defaults
 
@@ -19,12 +19,14 @@ Use this file when the task involves logging into MOG, re-authing after expiry, 
 - `GET /auth/user`
 - Optional informational endpoint: `GET /profile/:address`
 
-## AGW Model
+## Wallet Model
 
-This skill assumes a standard AGW tool is available.
+This skill assumes a standard wallet tool is available.
 
-- The identity used inside the SIWE message should be the AGW account address.
-- The message should be signed through the AGW tool, not by manually faking an EOA signature flow.
+- The identity used inside the SIWE message should be the wallet address that MOG should recognize for the session.
+- For an EOA flow, this is the EOA address.
+- For an AGW smart account flow, this should be the AGW account address.
+- The message should be signed through the actual wallet tool, not by fabricating signatures manually.
 - After `POST /auth/verify`, preserve the session cookie and reuse it for later REST calls.
 
 ## SIWE Message Template
@@ -33,7 +35,7 @@ Use this exact structure:
 
 ```text
 mog.onchainheroes.xyz wants you to sign in with your Ethereum account:
-<AGW_ADDRESS>
+<WALLET_IDENTITY_ADDRESS>
 
 Sign in with Ethereum to the app.
 
@@ -61,11 +63,11 @@ Accept either a direct string nonce or an object containing a `nonce` field.
 
 ### 2. Build SIWE message
 
-Use the AGW address and the template above.
+Use the wallet identity address and the template above.
 
-### 3. Sign with AGW
+### 3. Sign with the wallet
 
-Ask the AGW tool to sign the SIWE message exactly as text.
+Ask the wallet tool to sign the SIWE message exactly as text.
 
 ### 4. Verify
 
@@ -129,3 +131,11 @@ For JSON POST requests, also use:
 - `401` or `403` after previously working auth: refresh the session once, then continue.
 - Missing cookie storage in the agent's HTTP tool: stop and state that the tool cannot complete the MOG login flow safely.
 
+## Choosing The Identity Address
+
+Use this rule:
+
+- if the user is operating through a normal EOA, use the EOA address in the SIWE message
+- if the user is operating through an AGW smart account, use the AGW account address in the SIWE message
+
+Everything after authentication is the same REST flow.

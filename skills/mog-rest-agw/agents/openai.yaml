@@ -1,4 +1,0 @@
-interface:
-  display_name: "MOG REST + AGW"
-  short_description: "Operate MOG via REST and AGW-authenticated sessions"
-  default_prompt: "Use $mog-rest-agw to authenticate to MOG with AGW, manage keys, inspect runs, and execute legal game actions over REST."

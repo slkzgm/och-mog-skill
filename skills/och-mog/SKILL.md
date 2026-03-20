@@ -1,17 +1,17 @@
 ---
-name: mog-rest-agw
-description: "Use this skill when an agent needs to operate MOG through the public REST API and standard AGW interactions: authenticate with AGW via SIWE, preserve the session cookie, buy keys onchain, check key balance, send keys, create or resume runs, inspect game state, execute legal game actions, or inspect claims, weekly pool, and jackpot endpoints."
+name: och-mog
+description: "Use this skill when an agent needs to operate OCH MOG, Maze of Gain, or OnChainHeroes MOG through wallet signing plus the public REST API: authenticate with SIWE using either an EOA or AGW wallet, preserve the session cookie, buy keys onchain, check key balance, send keys, create or resume runs, inspect game state, execute legal game actions, or inspect claims, weekly pool, and jackpot endpoints."
 ---
 
-# MOG REST AGW
+# OCH MOG
 
-Operate MOG through HTTP requests plus standard AGW signing and transaction calls. Do not depend on this repository's CLI or local app at runtime; use them only as the historical source that informed this skill.
+Operate MOG through HTTP requests plus standard wallet signing and transaction calls. Do not depend on this repository's CLI or local app at runtime; use them only as the historical source that informed this skill.
 
 ## When To Use
 
 Use this skill when the user wants to:
 
-- log into `mog.onchainheroes.xyz` with AGW
+- log into `mog.onchainheroes.xyz` with either an EOA or AGW wallet
 - buy keys onchain
 - check key balance or send keys to another address
 - create, resume, inspect, or play a MOG run through REST
@@ -21,7 +21,7 @@ Use this skill when the user wants to:
 Do not use this skill if the agent lacks both:
 
 - an HTTP-capable tool that can send headers and preserve cookies
-- an AGW-capable tool that can sign a SIWE message and send an onchain transaction
+- a wallet-capable tool that can sign a SIWE message and send an onchain transaction
 
 ## Operating Model
 
@@ -33,7 +33,7 @@ Do not use this skill if the agent lacks both:
 
 ## Quick Start
 
-1. Authenticate with AGW.
+1. Authenticate with the available wallet.
 Read `references/auth-siwe-agw.md`.
 
 2. Choose the operation.
@@ -50,8 +50,8 @@ Read `references/auth-siwe-agw.md`.
 ### Authenticate
 
 1. `GET /auth/nonce`
-2. Build the SIWE message with the AGW address and the known MOG defaults.
-3. Sign the SIWE message with the AGW tool.
+2. Build the SIWE message with the wallet identity address and the known MOG defaults.
+3. Sign the SIWE message with the wallet tool.
 4. `POST /auth/verify` with `{ "message": "...", "signature": "0x..." }`
 5. Preserve the returned session cookie.
 6. `GET /auth/user` to confirm the session is authenticated.
@@ -59,7 +59,7 @@ Read `references/auth-siwe-agw.md`.
 ### Buy keys
 
 1. Read `references/key-ops.md`.
-2. Use the AGW tool to call `buyKeys(uint256 quantity)` on the known contract.
+2. Use the wallet tool to call `buyKeys(uint256 quantity)` on the known contract.
 3. Send `0.001 ETH * quantity`.
 4. Confirm with `GET /keys/balance`.
 

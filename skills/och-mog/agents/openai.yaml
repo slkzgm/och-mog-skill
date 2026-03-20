@@ -1,0 +1,4 @@
+interface:
+  display_name: "OCH MOG"
+  short_description: "Operate OCH MOG with wallet signing and REST"
+  default_prompt: "Use $och-mog to authenticate to OCH MOG, manage keys, inspect runs, and execute legal game actions with either an EOA or AGW wallet."
