@@ -40,6 +40,8 @@ Read `references/auth-siwe-agw.md`.
 - Keys and gifting: `references/key-ops.md`
 - Run lifecycle and endpoint contracts: `references/game-api.md`
 - Reading the map and choosing actions: `references/game-state-and-map.md`
+- Phase strategy, combat heuristics, and routing priorities: `references/strategy-core.md`
+- Upgrade name mapping and known enemy identifiers: `references/upgrade-mapping.md`
 - Autoplay policy and backend quirks: `references/strategy-and-gotchas.md`
 - Claims, weekly pool, jackpot: `references/rewards-and-pools.md`
 
@@ -69,6 +71,7 @@ Read `references/auth-siwe-agw.md`.
 2. If no run is active, `POST /runs/create` with `{ "keysAmount": <n> }`
 3. `GET /runs/:runId`
 4. Read `references/game-state-and-map.md` before deciding actions
+5. If the task is strategic or autoplay-related, also read `references/strategy-core.md` and `references/upgrade-mapping.md`
 
 ### Play a turn
 

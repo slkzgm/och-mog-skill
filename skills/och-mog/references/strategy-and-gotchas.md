@@ -1,6 +1,6 @@
 # Strategy And Gotchas
 
-Use this file for turn policy, upgrade choices, retry behavior, and backend quirks.
+Use this file for backend quirks, retry behavior, and concise autoplay defaults. For the fuller strategic model, also read `strategy-core.md` and `upgrade-mapping.md`.
 
 ## Recommended Default Policy
 
@@ -9,13 +9,13 @@ Unless the user requests a different objective, optimize for `treasure per key` 
 Default decision order:
 
 1. resolve pending upgrade selection
-2. if stairs are known, path toward stairs first
-3. attack adjacent high-value enemies
-4. if stairs are unknown, expand the frontier to reveal more map
-5. break adjacent `pot` or `crate`
-6. in later floors, path toward nearby pickups when it does not heavily delay stairs
-7. move toward useful non-breakable interactives
-8. `pass` only as a strategic last resort
+2. follow the floor-phase policy from `strategy-core.md`
+3. if stairs are known, path toward stairs first unless stronger combat EV or sustain logic overrides it
+4. attack adjacent high-value or dangerous follower enemies
+5. if stairs are unknown, expand the frontier to reveal more map
+6. break adjacent `pot` or `crate`
+7. move toward useful non-breakable interactives such as fountains when sustain matters
+8. `pass` only as a strategic last resort or a deliberate combat-micro choice
 
 ## Upgrade Priority
 
@@ -127,4 +127,3 @@ If the agent can persist notes, log at least:
 - backend error details
 
 This is especially useful when refining autoplay policy.
-

@@ -97,6 +97,7 @@ These are critical:
 - `pot` and `crate` are breakables: use `break`
 - `stairs` are movement-based: move onto the tile
 - `fountain` is movement-based: move onto the tile
+- fountains are one-time sustain nodes and can restore energy on first use
 - non-breakable interactives should generally be entered with `move`
 - pickups are movement-based, not `break`
 
@@ -109,6 +110,12 @@ Treat it as ghost-like if either:
 - `type` contains `ghost`
 - `spriteType` contains `ghost`
 - `maxHp <= 0`
+
+Additional tactical note:
+
+- do not assume it is always best to step into adjacency first
+- some enemies punish entering adjacent range, so waiting can be better when their movement pattern will bring them to you
+- do not overuse this rule; avoid pass loops against enemies that will not converge
 
 ## Upgrade Flow Rules
 
@@ -129,4 +136,3 @@ For one directional step:
 5. else the direction is blocked
 
 This action-selection contract matches the custom client and the agent CLI logic that were previously validated against the live game.
-
