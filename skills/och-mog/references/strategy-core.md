@@ -186,7 +186,11 @@ Confirmed technical mapping:
 Confirmed conceptually:
 
 - this is the jackpot enemy
+- it can appear only on floors `7+`
+- published spawn rate is `8%`
 - defeating it can trigger jackpot payout
+- after being defeated once, it should not appear again later in the same run
+- the run continues after the fight
 
 Technical caveat:
 
@@ -212,4 +216,3 @@ It should be interpreted as:
 
 - early floors are clear-heavy by default
 - higher floors are EV-heavy and condition-dependent
-

@@ -36,6 +36,13 @@ Observed behavior:
 - `userTreasure` and `projectedPayout` change over time
 - when no claim is available, `totalClaimable` may be `"0"` and `claimableWeeks` may be empty
 
+Product-level reward model:
+
+- weekly treasure determines the player's share of the weekly pool
+- payout formula:
+  - `weekly_pool * (your_treasure / total_treasure)`
+- weekly claims do not expire once earned
+
 ## What We Know About Jackpot
 
 `GET /jackpot/balance` has been observed returning:
@@ -45,6 +52,15 @@ Observed behavior:
 When no jackpot is claimable, it may be `"0"`.
 
 `GET /jackpot/pool` and `GET /weekly-pool` have also been observed as read-only lobby endpoints.
+
+Product-level jackpot model:
+
+- Sir Jackalot is the jackpot enemy
+- jackpot payout is credited instantly to claimable balance when hit
+- jackpot tiers are advertised as:
+  - minor: `0.1%` of jackpot pool
+  - major: `0.5%` of jackpot pool
+  - mega: `2%` of jackpot pool
 
 ## Important Boundary
 
@@ -75,3 +91,10 @@ Only use a claim or jackpot write endpoint once it has been observed live and it
 
 Historical analysis showed that `userTreasure` on `/claims` can move after `game_over`, which is useful for validation, but it still does not confirm a public client-side claim POST flow.
 
+## Marble Notes
+
+Product-level rules:
+
+- marbles are redeemed weekly
+- weekly marble cap is `1000`
+- extra marbles may still appear after cap, but are not counted toward reward

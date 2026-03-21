@@ -25,6 +25,19 @@ Read these on every turn:
 - `gameState.portals`
 - `gameState.torches`
 
+## Turn Order
+
+Core loop:
+
+- the player acts first
+- then enemies act
+
+Why this matters:
+
+- stepping into adjacency can be meaningfully different from waiting
+- `pass` is a real tactical action, not just a noop
+- threat evaluation must account for enemy movement and retaliation after the player's choice
+
 ## Player Fields That Matter
 
 From `gameState.player`:
