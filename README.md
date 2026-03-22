@@ -33,3 +33,11 @@ The skill covers:
 - reward, weekly pool, and jackpot inspection
 
 The skill intentionally treats claim and jackpot payout writes as unconfirmed until a live write endpoint has been directly observed.
+
+## Strategy Credits
+
+Strategy guidance and high-level gameplay heuristics were informed in part by Gucci.
+
+- X: https://x.com/gucci_gcc
+- GitHub: https://github.com/gcc1996
+- Discord: `gcc8500`
