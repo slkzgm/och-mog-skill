@@ -192,10 +192,23 @@ Confirmed conceptually:
 - after being defeated once, it should not appear again later in the same run
 - the run continues after the fight
 
+Observed technical mapping from a captured game state:
+
+- `id`: `enemy_skeleton_king`
+- `spriteType`: `skeletonking`
+- `type`: `fleeing`
+- observed floor: `8`
+- observed stats in that capture: `hp 8`, `damage 3`
+
 Technical caveat:
 
-- a direct run payload for Sir Jackalot has not yet been captured in our data
-- treat it as real but rare
+- this mapping is based on a captured state explicitly identified as Sir Jackalot
+- treat it as strong evidence, but prefer fresh payload confirmation if later logs disagree
+
+Strategic implication:
+
+- unlike follower enemies such as bats or skeletons, Sir Jackalot should be treated as a premium chase target
+- do not apply the generic "wait for the enemy to come to you" micro to him by default if the payload continues to show `type: fleeing`
 
 ### Maomi
 

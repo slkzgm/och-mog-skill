@@ -96,7 +96,9 @@ Confirmed or strongly supported technical names:
 
 ## Jackpot-Related Notes
 
-- `Sir Jackalot` is confirmed by system event text, but a direct run payload mapping has not yet been captured.
+- `Sir Jackalot` is confirmed by system event text and by a captured run state that appears to map him as:
+  - `id`: `enemy_skeleton_king`
+  - `spriteType`: `skeletonking`
+  - `type`: `fleeing`
 - `jackpotWon` exists in run payloads.
 - `skDefeated` exists in run payloads and is likely tied to Slime King / SK progression.
-
