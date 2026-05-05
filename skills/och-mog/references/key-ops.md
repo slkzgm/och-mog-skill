@@ -1,34 +1,109 @@
 # Key Operations
 
-Use this file for buying keys, checking key balance, or sending keys to another address.
+Use this file for buying keys, checking key balances, sending keys, handling World keys where available, or inspecting transfer history.
+
+## Public Variant Matrix
+
+- OCH MOG: chain `2741`, native `ETH`, AGW-compatible app flow
+- Axie: Den of Mysteries: chain `2020`, `USDC`, standard wallet connector flow
+
+Contract addresses are intentionally not embedded in this skill. Resolve them from the public app/wallet transaction context or a trusted public contract registry for the selected public host before sending funds.
 
 ## REST Endpoints
 
+Normal keys:
+
 - `GET /keys/balance`
+- `POST /keys/process-purchase`
 - `POST /keys/send`
+- `GET /keys/transfers`
 
-## Onchain Purchase
+World-key and item balances, where publicly available:
 
-Buying keys is not a REST call. It is an onchain wallet transaction.
+- `GET /items/world-keys`
+- `POST /world-keys/send`
+- `GET /world-keys/transfers`
+- `GET /items/amber`
+- `GET /items/balances`
 
-Confirmed contract data:
+World-key endpoints are feature-gated. If a public host does not expose them, treat that as unsupported for that host.
 
-- Chain ID: `2741`
-- Contract: `0xBDE2483b242C266a97E39826b2B5B3c06FC02916`
-- Function: `buyKeys(uint256 quantity)`
-- Price per key: `0.001 ETH`
+## Buying Keys
 
-## Buy Keys With A Wallet
+Buying keys has two steps:
 
-### Function call
+1. send the onchain `buyKeys(uint256 quantity)` transaction
+2. after confirmation, process the purchase through REST with the transaction hash
 
-- Contract call: `buyKeys(quantity)`
-- Native value: `0.001 ETH * quantity`
+Do not treat the onchain transaction alone as sufficient for the REST balance to update.
 
-### Minimal ABI
+## Contract Reads Before Purchase
+
+Always read the contract state if the wallet tool supports it:
+
+- `keyPrice()`
+- `paused()`
+
+Use the live `keyPrice()` result instead of hardcoding a price.
+
+## OCH MOG Native-Token Purchase
+
+1. Ensure the wallet is on chain `2741`.
+2. Resolve the public key purchase contract for OCH MOG.
+3. Read `paused()`; stop if paused.
+4. Read `keyPrice()`.
+5. Call `buyKeys(quantity)` with native value `keyPrice * quantity`.
+6. Wait for confirmation.
+7. `POST /keys/process-purchase` with:
+
+```json
+{
+  "txHash": "0x..."
+}
+```
+
+8. Confirm with `GET /keys/balance`.
+
+## Axie ERC-20 Purchase
+
+1. Ensure the wallet is on chain `2020`.
+2. Resolve the public key purchase contract and ERC-20 token contract for Axie.
+3. Read `paused()`; stop if paused.
+4. Read `keyPrice()`.
+5. Check ERC-20 allowance for the purchase contract.
+6. If allowance is insufficient, send `approve(spender, amount)`.
+7. Call `buyKeys(quantity)` without native value.
+8. Wait for confirmation.
+9. `POST /keys/process-purchase` with:
+
+```json
+{
+  "txHash": "0x..."
+}
+```
+
+10. Confirm with `GET /keys/balance`.
+
+## Minimal ABIs
+
+Key purchase:
 
 ```json
 [
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "name": "keyPrice",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "name": "paused",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bool" }]
+  },
   {
     "type": "function",
     "stateMutability": "payable",
@@ -39,19 +114,34 @@ Confirmed contract data:
 ]
 ```
 
-### Recommended sequence
+ERC-20 approval, only for ERC-20 public variants:
 
-1. Ensure the wallet tool is connected to chain `2741`.
-2. Send the `buyKeys` transaction with the correct payable value.
-3. Wait for confirmation.
-4. Call `GET /keys/balance` to confirm the balance increased.
+```json
+[
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "name": "allowance",
+    "inputs": [
+      { "name": "owner", "type": "address" },
+      { "name": "spender", "type": "address" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256" }]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "name": "approve",
+    "inputs": [
+      { "name": "spender", "type": "address" },
+      { "name": "amount", "type": "uint256" }
+    ],
+    "outputs": [{ "name": "", "type": "bool" }]
+  }
+]
+```
 
-This works the same way for:
-
-- an EOA wallet
-- an AGW smart account
-
-The only difference is which wallet tool sends the transaction.
+If a native-token contract ABI marks `buyKeys` as payable and an ERC-20 contract ABI marks it as nonpayable, prefer the live ABI for the selected public host.
 
 ## Check Key Balance
 
@@ -69,13 +159,13 @@ Quirk:
 
 - This endpoint has intermittently returned `500` in practice. If it does, do not assume the balance is zero.
 
-## Send Keys
+## Send Normal Keys
 
 `POST /keys/send`
 
-This is an authenticated REST call that requires the MOG session cookie.
+Authenticated REST call requiring the session cookie.
 
-Confirmed payload:
+Payload:
 
 ```json
 {
@@ -84,22 +174,37 @@ Confirmed payload:
 }
 ```
 
-Recommended headers:
+On Axie, recipient input may also accept supported name formats. Prefer a resolved EVM address when available.
 
-- `Accept: */*` or `application/json`
-- `Content-Type: application/json`
-- `Cookie: <session cookie>`
-- `Origin: https://mog.onchainheroes.xyz`
-- `Referer: https://mog.onchainheroes.xyz/`
+Guardrails:
 
-## Send Keys Guardrails
-
-- Validate that `toAddress` is a real EVM address before sending.
-- Validate that `quantity` is a positive integer.
+- Validate `quantity` is a positive integer.
+- Validate or resolve the recipient before sending.
 - Prefer one send per intended recipient unless the user explicitly wants bulk gifting.
 - If the send fails, inspect the response body before retrying.
 
+## Send World Keys
+
+`POST /world-keys/send`
+
+Payload:
+
+```json
+{
+  "toAddress": "0x...",
+  "quantity": 1
+}
+```
+
+Use only where the endpoint is publicly available. If the endpoint returns not found or unsupported, report that World keys are not enabled for the selected host.
+
+## Transfer History
+
+- `GET /keys/transfers` for normal key transfer history
+- `GET /world-keys/transfers` for World-key transfer history where supported
+
 ## Practical Fallbacks
 
-- `GET /keys/balance` failed with `500`: try the intended downstream action once if the user expects balance to be sufficient.
-- Onchain buy succeeded but balance still looks stale: refetch once after a short delay.
+- `GET /keys/balance` failed with `500`: retry once after a short delay, then use downstream state cautiously if the user expects balance to be sufficient.
+- Onchain buy succeeded but REST balance is stale: call `POST /keys/process-purchase` again with the same tx hash; the flow should be idempotent.
+- If processing still fails, keep the tx hash and report the exact REST error without retrying blindly.

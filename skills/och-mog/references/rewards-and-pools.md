@@ -1,24 +1,36 @@
 # Rewards And Pools
 
-Use this file for claims, weekly pool, and jackpot inspection.
+Use this file for weekly claims, jackpot claims, weekly pool inspection, and jackpot pool inspection.
 
-## Confirmed Read Endpoints
+## Confirmed Endpoints
 
-- `GET /api/claims`
-- `GET /api/weekly-pool`
-- `GET /api/jackpot/pool`
-- `GET /api/jackpot/balance`
+If using the standard API base for a public host, use the path forms below.
 
-If you are already using the standard API base `https://mog.onchainheroes.xyz/api/`, the path forms are:
+Read/status endpoints:
 
-- `/claims`
-- `/weekly-pool`
-- `/jackpot/pool`
-- `/jackpot/balance`
+- `GET /claims`
+- `GET /weekly-pool`
+- `GET /jackpot/pool`
+- `GET /jackpot/balance`
+- `GET /public/pools`
 
-## What We Know About Claims
+Weekly claim write flow:
 
-`GET /claims` has been observed returning weekly claim context such as:
+- `POST /claims/generate-signatures`
+- onchain `claimWeekly(...)`
+- `POST /claims/process-claim`
+
+Jackpot claim write flow:
+
+- `POST /jackpot/claim`
+- onchain `claimJackpot(...)`
+- `POST /jackpot/process-claim`
+
+Claim vault addresses are intentionally not embedded in this skill. Resolve them from the public app/wallet transaction context or a trusted public contract registry for the selected public host before sending a transaction.
+
+## Weekly Claim Status
+
+`GET /claims` returns weekly claim context such as:
 
 - `weekNumber`
 - `weekStart`
@@ -30,66 +42,139 @@ If you are already using the standard API base `https://mog.onchainheroes.xyz/ap
 - `totalClaimable`
 - `claimableWeeks`
 
-Observed behavior:
+Behavior:
 
-- it is polled frequently by the client
-- `userTreasure` and `projectedPayout` change over time
+- it is safe to call repeatedly
+- `userTreasure` and `projectedPayout` can change as runs finish
 - when no claim is available, `totalClaimable` may be `"0"` and `claimableWeeks` may be empty
+- weekly claims do not expire once earned
 
 Product-level reward model:
 
 - weekly treasure determines the player's share of the weekly pool
-- payout formula:
-  - `weekly_pool * (your_treasure / total_treasure)`
-- weekly claims do not expire once earned
+- payout formula: `weekly_pool * (your_treasure / total_treasure)`
 
-## What We Know About Jackpot
+## Weekly Claim Execution
 
-`GET /jackpot/balance` has been observed returning:
+### 1. Read status
+
+`GET /claims`
+
+If `claimableWeeks` is empty or `totalClaimable` is zero, do not send a claim transaction.
+
+### 2. Generate signatures
+
+`POST /claims/generate-signatures`
+
+Expected request:
+
+```json
+{
+  "weeks": [1, 2]
+}
+```
+
+The server returns signed claim data for the requested weeks.
+
+### 3. Send onchain claim
+
+Send `claimWeekly` with the signed weekly claim entries returned by the server. Do not invent amounts or signatures.
+
+Typical entry shape:
+
+```json
+{
+  "week": 1,
+  "amount": "1000000000000000000",
+  "signature": "0x..."
+}
+```
+
+### 4. Process the transaction
+
+`POST /claims/process-claim`
+
+```json
+{
+  "txHash": "0x..."
+}
+```
+
+Then refetch `GET /claims`.
+
+## Jackpot Status
+
+`GET /jackpot/balance` returns pending claimable jackpot value, commonly as:
 
 - `pendingJackpotWei`
 
 When no jackpot is claimable, it may be `"0"`.
 
-`GET /jackpot/pool` and `GET /weekly-pool` have also been observed as read-only lobby endpoints.
+`GET /jackpot/pool`, `GET /weekly-pool`, and `GET /public/pools` are lobby/pool inspection endpoints.
 
-Product-level jackpot model:
+## Jackpot Claim Execution
 
-- Sir Jackalot is the jackpot enemy
-- jackpot payout is credited instantly to claimable balance when hit
-- jackpot tiers are advertised as:
+### 1. Read balance
+
+`GET /jackpot/balance`
+
+If no pending balance exists, stop.
+
+### 2. Request claim data
+
+`POST /jackpot/claim`
+
+The server returns signed jackpot claim data when a pending claim exists. If no pending jackpot exists, expect a bad-request style error.
+
+Do not call the onchain claim function with an empty claims array.
+
+### 3. Send onchain claim
+
+Send `claimJackpot` with the signed claim entries returned by the server.
+
+Typical entry shape:
+
+```json
+{
+  "nonce": "1",
+  "amount": "1000000000000000000",
+  "signature": "0x..."
+}
+```
+
+### 4. Process the transaction
+
+`POST /jackpot/process-claim`
+
+```json
+{
+  "txHash": "0x..."
+}
+```
+
+Then refetch `GET /jackpot/balance`.
+
+## Pool Contributions
+
+Normal run creation contributes key value into public pools:
+
+- `60%` weekly pool
+- `30%` jackpot pool
+- remaining value follows product allocation outside these two displayed pools
+
+Purchases alone do not directly credit the weekly or jackpot pool. Pool movement is tied to normal run creation/spend.
+
+World runs, where publicly available, use separate World resources and should not be assumed to fund normal weekly or jackpot pools.
+
+## Jackpot Gameplay Notes
+
+- Sir Jackalot is the jackpot enemy.
+- The jackpot payout is credited to pending claimable balance when the server records a qualifying hit/defeat event.
+- Jackpot tier percentages currently used by public gameplay before any balance multiplier are:
   - minor: `0.1%` of jackpot pool
   - major: `0.5%` of jackpot pool
-  - mega: `2%` of jackpot pool
-
-## Important Boundary
-
-This skill does not currently treat claim payout or jackpot payout as a confirmed write workflow.
-
-Reason:
-
-- a claim POST endpoint has not yet been directly confirmed in our captured traffic
-- a jackpot payout POST endpoint has not yet been directly confirmed either
-
-Do not invent one of these:
-
-- `POST /claims`
-- `POST /claims/claim`
-- `POST /claims/:week/claim`
-- `POST /jackpot/claim`
-
-Only use a claim or jackpot write endpoint once it has been observed live and its payload is known.
-
-## Safe Usage Pattern
-
-1. Authenticate normally.
-2. Read the known GET endpoints.
-3. If claimable data is non-zero and the user wants payout automation, state that the write endpoint must be freshly discovered from live traffic first.
-4. Once a write endpoint is confirmed in the future, add it to this skill rather than improvising.
-
-## Correlation Hint
-
-Historical analysis showed that `userTreasure` on `/claims` can move after `game_over`, which is useful for validation, but it still does not confirm a public client-side claim POST flow.
+  - top tier: `2%` of jackpot pool
+- Balance multipliers can reduce displayed payout when the backing claim balance is low.
 
 ## Marble Notes
 
@@ -98,3 +183,10 @@ Product-level rules:
 - marbles are redeemed weekly
 - weekly marble cap is `1000`
 - extra marbles may still appear after cap, but are not counted toward reward
+
+## Guardrails
+
+- Use server-generated signatures only.
+- Do not reuse signatures across hosts, wallets, or users.
+- Do not proceed if the wallet address differs from the authenticated user.
+- If an onchain transaction succeeds but REST processing fails, preserve the tx hash and retry processing once before reporting the error.

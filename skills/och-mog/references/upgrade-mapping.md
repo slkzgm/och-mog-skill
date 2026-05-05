@@ -4,9 +4,11 @@ Use this file when the task requires mapping player-facing upgrade names to tech
 
 ## Scope And Confidence
 
-These mappings come from observed notes and payloads. Most are strong enough to use operationally, but if a live run exposes conflicting labels, prefer the live game data.
+These mappings come from public payload behavior and product-facing names. If a live run exposes conflicting labels, prefer the live `pendingUpgradeOptions` data.
 
 ## Player-Facing Name -> Technical ID
+
+Core and common upgrades:
 
 - `vigor I` -> `max_energy_small`
 - `vigor II` -> `max_energy_large`
@@ -20,7 +22,6 @@ These mappings come from observed notes and payloads. Most are strong enough to 
 - `sprint` -> `sprint`
 - `scavenger` -> `scavenger`
 - `soft traps` -> `soft_traps`
-- `mimic sense` -> `mimic_sense`
 - `poison blade` -> `poison_blade`
 - `treasure hunter` -> `treasure_hunter`
 - `tough hide` -> `tough_hide`
@@ -35,23 +36,39 @@ These mappings come from observed notes and payloads. Most are strong enough to 
 - `thorns` -> `thorns`
 - `armor plating` -> `armor_plating`
 
+Higher-impact or rarer upgrades:
+
+- `second wind` -> `second_wind`
+- `portal adept` -> `portal_adept`
+- `retaliation` -> `retaliation`
+- `spirit ward` -> `spirit_ward`
+- `fatal edge` -> `fatal_edge`
+- `executioner` -> `executioner`
+- `invisibility` -> `invisibility`
+- `phoenix` -> `phoenix`
+
 ## Observed Effects Summary
 
-- `max_energy_small`: `+15` max energy, passive
-- `max_energy_large`: larger max-energy upgrade, passive
-- `attack_up`: `+1` attack
+- `max_energy_small`: max energy increase
+- `max_energy_large`: larger max-energy increase
+- `attack_up`: attack increase
 - `treasure_bonus`: treasure increase effect
 - `lucky_find`: improved loot drops
 - `scavenger`: pots and crates drop loot more reliably
-- `quick_step`: free movement over a bounded duration
+- `quick_step`: temporary free movement behavior
 - `swift_steps`: stronger temporary free-movement effect
 - `sprint`: finite pool of free moves
 - `bone_breaker`: extra damage vs skeletons
-- `mimic_sense`: reveal hidden mimics
 - `soft_traps`: reduce trap damage
 - `trap_sight`: reveal traps in explored areas
 - `treasure_hunter`: extra item from chests
 - `heal_small` / `heal_large`: instant energy restoration
+- `portal_adept`: improves teleport cost profile
+- `spirit_ward`: changes ghost interaction
+- `fatal_edge`: powerful low-health execute-style effect
+- `second_wind`: survival recovery effect
+
+Many passive upgrades have bounded floor durations. Check `passiveBuffDurations` and live buff fields before assuming an effect is permanent.
 
 ## Buff Field Hints
 
@@ -81,24 +98,41 @@ Observed buff fields that help interpret upgrade state:
 - `momentumMoves`
 - `passiveBuffDurations`
 
+## Upgrade Selection Guidance
+
+Default high-priority picks:
+
+- economy and loot: `treasure_hunter`, `lucky_find`, `scavenger`, `magnet`
+- movement and routing: `quick_step`, `swift_steps`, `sprint`, `portal_adept`
+- survivability: `second_wind`, `tough_hide`, `shield`, `soft_traps`
+- combat: `attack_up`, `fatal_edge`, `critical_strike`, `cleave`, `retaliation`
+
+Legendary or rare behavior can be gated per run. Do not force a hardcoded legendary pick if it is not present in live options.
+
 ## Enemy Name Hints
 
 Confirmed or strongly supported technical names:
 
-- `bat`: standard bat, likely the "black bat" the player referred to
-- `skullbat`: distinct, higher-tier bat variant
 - `slime`: standard slime
-- `redslime`: distinct slime variant, not the same as Big Slime
+- `redslime`: distinct slime variant
+- `bat`: standard bat
+- `skullbat`: distinct, higher-tier bat variant
+- `skeleton`: standard skeleton
+- `skeleton2`: higher-tier skeleton
+- `ghost`: invincible or special-interaction ghost
+- `ghost2`, `ghost3`: damaging ghost variants
+- `shroom`: stationary ranged enemy
 - `kingslime`: Slime King / Big Slime / SK
 - `king_slime_split`: split form of Slime King
+- `mimic`: hidden chest enemy
+- `skeletonking`: Sir Jackalot
+- `pengu`: event enemy
+- `capfull`: event enemy
 - `maomi`: premium enemy hint observed in logs
-- `ghost`: non-standard attack logic, avoid assuming normal melee behavior
 
 ## Jackpot-Related Notes
 
-- `Sir Jackalot` is confirmed by system event text and by a captured run state that appears to map him as:
-  - `id`: `enemy_skeleton_king`
-  - `spriteType`: `skeletonking`
-  - `type`: `fleeing`
-- `jackpotWon` exists in run payloads.
-- `skDefeated` exists in run payloads and is likely tied to Slime King / SK progression.
+- `Sir Jackalot` is the jackpot enemy.
+- Public run payloads can expose `jackpotWon`.
+- Public run payloads can expose `skDefeated`, likely tied to Slime King / SK progression.
+- Use current events and enemy payloads to decide whether to chase or fight; do not rely only on name matching.

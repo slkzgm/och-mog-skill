@@ -1,16 +1,26 @@
 # Auth And Session
 
-Use this file when the task involves logging into MOG, re-authing after expiry, or explaining how wallet signing and the REST session fit together.
+Use this file when the task involves logging into a public MOG host, re-authing after expiry, or explaining how wallet signing and the REST session fit together.
 
-## Confirmed Defaults
+## Public Hosts
 
-- API base: `https://mog.onchainheroes.xyz/api/`
-- SIWE domain: `mog.onchainheroes.xyz`
-- SIWE URI: `https://mog.onchainheroes.xyz`
-- SIWE statement: `Sign in with Ethereum to the app.`
-- SIWE version: `1`
-- Chain ID: `2741`
-- Typical expiration window used by our client and CLI: `7` days
+- OCH MOG API base: `https://mog.onchainheroes.xyz/api/`
+- Axie: Den of Mysteries API base: `https://axiedom.xyz/api/`
+
+The request host selects the variant. Do not hardcode one host into a session for another host.
+
+## Chains And Wallet Modes
+
+Mainnet public variants:
+
+- OCH MOG: chain `2741`, native `ETH`, Abstract wallet / AGW flow supported
+- Axie: Den of Mysteries: chain `2020`, `USDC`, standard EOA-style wallet connector
+
+Operational notes:
+
+- OCH MOG supports AGW/session-key behavior in the app context.
+- Axie uses a normal wallet connector flow; do not assume AGW session keys there.
+- Always switch the wallet to the public chain that matches the selected host before signing or sending transactions.
 
 ## Required Endpoints
 
@@ -19,29 +29,42 @@ Use this file when the task involves logging into MOG, re-authing after expiry, 
 - `GET /auth/user`
 - Optional informational endpoint: `GET /profile/:address`
 
+## SIWE Rules
+
+Use these values dynamically from the selected public host:
+
+- `domain`: exact request host, for example `mog.onchainheroes.xyz` or `axiedom.xyz`
+- `uri`: exact origin, for example `https://mog.onchainheroes.xyz`
+- `statement`: `Sign in with Ethereum to the app.`
+- `version`: `1`
+- `chainId`: selected public chain
+- `nonce`: value returned by `GET /auth/nonce`
+
+The nonce is scoped by host/variant. If the selected host changes, request a new nonce and rebuild the SIWE message.
+
 ## Wallet Model
 
 This skill assumes a standard wallet tool is available.
 
-- The identity used inside the SIWE message should be the wallet address that MOG should recognize for the session.
+- The identity address in the SIWE message should be the wallet address that MOG should recognize for the session.
 - For an EOA flow, this is the EOA address.
 - For an AGW smart account flow, this should be the AGW account address.
-- The message should be signed through the actual wallet tool, not by fabricating signatures manually.
-- After `POST /auth/verify`, preserve the session cookie and reuse it for later REST calls.
+- The message should be signed through the wallet tool, not by fabricating signatures manually.
+- After `POST /auth/verify`, preserve the session cookie and reuse it for later REST calls on the same host.
 
 ## SIWE Message Template
 
-Use this exact structure:
+Use this structure, replacing every host/origin/chain value for the selected public host:
 
 ```text
-mog.onchainheroes.xyz wants you to sign in with your Ethereum account:
+<DOMAIN> wants you to sign in with your Ethereum account:
 <WALLET_IDENTITY_ADDRESS>
 
 Sign in with Ethereum to the app.
 
-URI: https://mog.onchainheroes.xyz
+URI: <ORIGIN>
 Version: 1
-Chain ID: 2741
+Chain ID: <CHAIN_ID>
 Nonce: <NONCE>
 Issued At: <ISO_TIMESTAMP>
 Expiration Time: <ISO_TIMESTAMP_PLUS_7_DAYS>
@@ -51,7 +74,7 @@ Notes:
 
 - `Issued At` must be a valid ISO-8601 timestamp.
 - `Expiration Time` should also be ISO-8601.
-- The nonce comes from `GET /auth/nonce`.
+- The nonce comes from `GET /auth/nonce` on the same host that will receive `POST /auth/verify`.
 
 ## Authentication Sequence
 
@@ -59,7 +82,7 @@ Notes:
 
 `GET /auth/nonce`
 
-Accept either a direct string nonce or an object containing a `nonce` field.
+The endpoint returns a plain text nonce in current public flows. Tolerate an object containing a `nonce` field if an HTTP helper normalizes the response.
 
 ### 2. Build SIWE message
 
@@ -110,8 +133,8 @@ Typical success shape:
 Use:
 
 - `Accept: application/json`
-- `Origin: https://mog.onchainheroes.xyz`
-- `Referer: https://mog.onchainheroes.xyz/`
+- `Origin: https://<public-host>`
+- `Referer: https://<public-host>/`
 - `Cookie: <session cookie>` on authenticated calls
 
 For JSON POST requests, also use:
@@ -128,8 +151,11 @@ For JSON POST requests, also use:
 ## Failure Handling
 
 - Empty nonce: stop and report auth failure.
+- `INVALID_DOMAIN` or `INVALID_URI`: rebuild the SIWE message with the exact selected public host and origin.
+- `INVALID_CHAIN_ID` or `INVALID_CHAIN`: switch the wallet to the selected public chain and request a new nonce.
+- `NONCE_NOT_FOUND` or `NONCE_EXPIRED`: request a new nonce and rebuild the message.
 - `401` or `403` after previously working auth: refresh the session once, then continue.
-- Missing cookie storage in the agent's HTTP tool: stop and state that the tool cannot complete the MOG login flow safely.
+- Missing cookie storage in the agent's HTTP tool: stop and state that the tool cannot complete the login flow safely.
 
 ## Choosing The Identity Address
 
@@ -138,4 +164,4 @@ Use this rule:
 - if the user is operating through a normal EOA, use the EOA address in the SIWE message
 - if the user is operating through an AGW smart account, use the AGW account address in the SIWE message
 
-Everything after authentication is the same REST flow.
+Everything after authentication is the same REST flow for a given public host.

@@ -1,6 +1,6 @@
 # OCH MOG Skill
 
-Standalone installable skill for operating OCH MOG through wallet signing plus the public REST API.
+Standalone installable skill for operating public OCH MOG variants through wallet signing plus the public REST API.
 
 This repository packages the skill at:
 
@@ -22,17 +22,18 @@ npx skills add slkzgm/och-mog-skill@och-mog
 
 ## Scope
 
-The skill covers:
+The skill covers only public MOG surfaces:
 
-- EOA or AGW SIWE login for `mog.onchainheroes.xyz`
+- SIWE login for public OCH MOG hosts
 - session cookie handling
-- key balance checks and key sends
-- onchain key purchases with a wallet
+- key balance checks, key sends, and transfer history
+- onchain key purchase flow plus REST purchase processing
 - run creation, resume, inspection, and gameplay actions over REST
-- map and state interpretation
-- reward, weekly pool, and jackpot inspection
+- normal and World run handling where publicly available
+- map, fog, state, item, portal, enemy, and upgrade interpretation
+- weekly reward and jackpot claim flows
 
-The skill intentionally treats claim and jackpot payout writes as unconfirmed until a live write endpoint has been directly observed.
+The skill intentionally excludes unannounced variants, private configuration, contract addresses, source snippets, and local environment values.
 
 ## Strategy Credits
 

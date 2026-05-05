@@ -1,16 +1,16 @@
 # Strategy Core
 
-Use this file for practical play policy, floor-phase goals, chest and pot priorities, sustain routing, and premium target handling.
+Use this file for practical play policy, floor-phase goals, chest and pot priorities, sustain routing, items, portals, and premium target handling.
 
 ## Scope And Confidence
 
 This file combines:
 
-- observed API and payload behavior
-- custom-client interaction rules
+- observed public API and payload behavior
+- public client interaction rules
 - guidance from a strong player
 
-Treat these as high-value heuristics, not perfect proofs of optimal play.
+Treat these as high-value heuristics, not perfect proofs of optimal play. The server state is always authoritative.
 
 ## Primary Mode Framing
 
@@ -26,21 +26,23 @@ The strongest general framing is:
 
 Default objective:
 
-- kill all enemies
+- kill all enemies that can be fought safely
 - open all pots
+- route through nearby chests when efficient
 
 Interpretation of "clear":
 
 - enemy full-clear is the core requirement
 - pots are part of the baseline value loop
-- crates and nearby chests are secondary to that baseline, but still often worthwhile if routing is efficient
+- crates and nearby chests are secondary, but often worthwhile if routing is efficient
 
 ### Floors 5-6
 
 Default objective:
 
 - clear only if the run remains healthy
-- do not spend too much energy for mediocre EV
+- avoid spending too much energy for mediocre EV
+- start preserving tactical control for floor `7+`
 
 ### Floors 7+
 
@@ -82,50 +84,81 @@ Implication:
 - do not over-prioritize passive side objectives while a follower can collapse onto your position
 - combat pressure can be more important than visible chest routing
 
-## Chest Priority
+## Chest, Pot, Crate, Rock
 
-Early and neutral state:
+### Chests
 
-- if a chest is visible, its room can be favored when the route is still efficient
+Chests are movement-blocking but auto-open when the player moves adjacent.
 
-Higher-floor / jackpot phase:
+Use:
 
-- premium enemies and dangerous followers take priority over chest routing
-- do not let chest greed drag the run into low-energy or multi-enemy situations
-
-Additional caution:
-
-- mimics exist
-- chest value becomes less important when jackpot or premium-combat EV is on the table
-
-## Pots, Crates, And Sustain
+- path adjacent to visible chests when the route is efficient
+- remember dormant mimics can be displayed as chests unless mimic-sense state is active
+- once opened, chest loot scatters around the chest and may require follow-up movement
 
 ### Pots
 
-Pots are strategically important enough to be part of early-floor "clear" logic.
+Pots are strategically important:
 
-Reason:
-
-- they can generate sustain and loot
+- they can drop sustain, resources, and hidden consumable items
 - they often fit naturally into room-clear routing
+- use explicit `break`
 
 ### Crates
 
 Crates are still valuable, but the strongest player signal emphasized pots more than crates.
 
-### Fountains
+Use explicit `break`.
+
+### Rocks
+
+Rocks block movement. Do not treat them as ordinary breakable objects unless a future public state explicitly introduces a valid rock action.
+
+## Fountains
 
 Fountains are one-time sustain nodes.
 
 Observed rule:
 
-- moving onto a fountain the first time can restore energy
+- moving onto a fountain the first time can restore up to `10` energy
 
 Practical use:
 
 - route through fountains when energy is low and path cost is reasonable
 - treat fountains as sustain tools, especially before or during the high-floor phase
 - do not ignore a nearby fountain if it materially stabilizes the run
+
+## Items
+
+Inventory is limited, so item decisions matter.
+
+Known useful patterns:
+
+- use `gas_pedal` or movement support to escape lethal pressure or improve premium-target routing
+- use targeted shot items on high-value or dangerous enemies when target rules allow
+- use `pocket_portal` or `escape_rope` for floor control when the run is unstable
+- preserve survival items for lethal or near-lethal moments
+- `discard_item` is free and can be correct when holding low-value inventory blocks future item access
+
+Do not let item optimization distract from immediate lethal threats.
+
+## Portals
+
+Portals are movement-based first. Teleport only after the state indicates the player is at a portal prompt.
+
+Teleport cost follows reroll-style progression. `portal_adept` improves the cost profile.
+
+Use teleport when:
+
+- current floor position is poor
+- a premium target or stairs route is much better after teleport
+- the cost is justified by survival or EV
+
+Avoid teleport when:
+
+- the current local route is already strong
+- the run cannot afford the resource cost
+- upgrade selection is pending
 
 ## Combat Micro: Do Not Always Step Into Adjacency
 
@@ -149,7 +182,7 @@ Do not:
 
 ## Multi-Enemy Risk
 
-The player’s strongest "common mistakes" warning is:
+The player's strongest "common mistakes" warning is:
 
 - do not fight multiple enemies at the same time if avoidable
 - do not path through the middle of a room unnecessarily
@@ -160,59 +193,54 @@ Practical implication:
 - avoid exposing the player to two-sided pressure
 - value clean sequencing of fights over greedy central movement
 
-## Rerolls And Build Timing
-
-Preferred pattern:
-
-- avoid rerolling heavily before floor `7` if possible
-- save reroll budget for the floors where combat EV matters more
-
-But:
-
-- if an early reroll materially saves a run, it can still be correct
-- treasure spent on stability can be positive EV over many runs
-
 ## Premium Targets And Rarity
 
 ### Slime King / SK
 
-Confirmed technical mapping:
+Technical mapping:
 
 - `kingslime`
 - split form: `king_slime_split`
 
+Strategic implication:
+
+- high-value enemy from floor `8+`
+- can be worth routing toward in higher floors
+- be ready for split-form cleanup and positioning risk
+
 ### Sir Jackalot
 
-Confirmed conceptually:
+Concept:
 
-- this is the jackpot enemy
-- it can appear only on floors `7+`
-- published spawn rate is `8%`
-- defeating it can trigger jackpot payout
-- after being defeated once, it should not appear again later in the same run
+- jackpot enemy
+- currently appears in the floor `7-15` band when eligible
+- current normal-run spawn pre-roll is `8%`
+- defeating or hitting it can produce jackpot claimable value depending on server event outcome
+- after being resolved once, it should not appear again later in the same run
 - the run continues after the fight
 
-Observed technical mapping from a captured game state:
+Technical mapping:
 
-- `id`: `enemy_skeleton_king`
-- `spriteType`: `skeletonking`
-- `type`: `fleeing`
-- observed floor: `8`
-- observed stats in that capture: `hp 8`, `damage 3`
-
-Technical caveat:
-
-- this mapping is based on a captured state explicitly identified as Sir Jackalot
-- treat it as strong evidence, but prefer fresh payload confirmation if later logs disagree
+- `skeletonking`
+- usually appears with fleeing behavior
 
 Strategic implication:
 
 - unlike follower enemies such as bats or skeletons, Sir Jackalot should be treated as a premium chase target
-- do not apply the generic "wait for the enemy to come to you" micro to him by default if the payload continues to show `type: fleeing`
+- do not apply the generic "wait for the enemy to come to you" micro to him by default if the payload continues to show fleeing behavior
 
-### Maomi
+### Mimics
 
-`maomi` appears in logs and should be treated as a premium-value enemy hint until more precise EV data is collected.
+Technical mapping:
+
+- `mimic`
+- dormant mimics can appear as closed chests in client-safe state
+- mimic-sense state reveals dormant mimics when present in the returned state
+
+Strategic implication:
+
+- chest routing has hidden combat risk
+- do not treat every visible chest as risk-free value
 
 ## Break-Even Interpretation
 
